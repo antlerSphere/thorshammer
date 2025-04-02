@@ -1,0 +1,233 @@
+The Python debugger in VS Code displayed this warning about frozen modules:
+
+0.02s - Debugger warning: It seems that frozen modules are being used, which may
+0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off
+0.00s - to python to disable frozen modules.
+0.00s - Note: Debugging will proceed. Set PYDEVD_DISABLE_FILE_VALIDATION=1 to disable this validation.
+
+* Tried to apply that argument by passing that flag to the Python debugger:
+
+PS C:\Users\USER\Desktop\ThorsHammer>  & 'c:\Python311\python.exe'
+'c:\Users\USER\.vscode\extensions\ms-python.debugpy-2025.1.2025021401-win32-x64\bundled\libs\debugpy\launcher'
+'61984' '--' 'C:\Users\USER\Desktop\ThorsHammer\ThorsHammer_v1.01.py' '-Xfrozen_modules=off'
+
+but it still didn't clear up that warning. 
+
+===
+
+4/2/25
+
+Asked CoPilot to fix this warning and it generated this settings.json file to pass the argument
+-Xfrozen_modules=off to the python interpreter:
+
+{
+    "python.defaultInterpreterPath": "C:\\Python311\\python.exe",
+    "launch": {
+        "configurations": [
+            {
+                "type": "debugpy",
+                "request": "launch",
+                "name": "Launch Program with Frozen Modules Off",
+                "program": "${workspaceFolder}/${input:pythonFile}",
+                "args": [],
+                "pythonArgs": ["-Xfrozen_modules=off"]
+            }
+        ],
+        "inputs": [
+            {
+                "type": "promptString",
+                "id": "pythonFile",
+                "description": "Enter the path to the Python file you want to debug"
+            }
+        ]
+    }
+}
+
+
+That then caused an error before debugging could run,
+"Variable ${workspaceFolder} can not be resolved. Please open a folder."
+
+Asking CoPilot about this error produced a corrected settings.json file, and that cleared up that particular error:
+
+
+{
+    "python.defaultInterpreterPath": "C:\\Python311\\python.exe",
+    "launch": {
+        "configurations": [
+            {
+                "type": "debugpy",
+                "request": "launch",
+                "name": "Launch Program with Frozen Modules Off",
+                "program": "C:\\Users\\USER\\Desktop\\ThorsHammer\\ThorsHammer_v1.01.py", // Replace with the absolute path to your Python file
+                "args": [],
+                "pythonArgs": ["-Xfrozen_modules=off"]
+            }
+        ],
+        "inputs": [
+            {
+                "type": "promptString",
+                "id": "pythonFile",
+                "description": "Enter the path to the Python file you want to debug"
+            }
+        ]
+    }
+}
+
+
+This still didn't clear up the frozen modules warning:
+
+0.02s - Debugger warning: It seems that frozen modules are being used, which may
+0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off
+0.01s - to python to disable frozen modules.
+0.00s - Note: Debugging will proceed. Set PYDEVD_DISABLE_FILE_VALIDATION=1 to disable this validation.
+
+So I asked CoPilot how to set the environment variable PYDEVD_DISABLE_FILE_VALIDATION equal to 1, and it recommended
+to change a couple lines in the settings.json file to
+
+"pythonArgs": ["-Xfrozen_modules=off"],
+                "env": 
+                    "PYDEVD_DISABLE_FILE_VALIDATION": "1"
+
+
+This yet still did not clear up the frozen modules warning.
+
+
+In this debugging session the webdriver version error resurfaced after the prompt that asks for location:
+
+Exception has occurred: SessionNotCreatedException
+Message: session not created: This version of ChromeDriver only supports Chrome version 132
+Current browser version is 135.0.7049.41 with binary path C:\Program Files\Google\Chrome\Application\chrome.exe
+Stacktrace:
+	GetHandleVerifier [0x00007FF7056EFBE5+28741]
+	(No symbol) [0x00007FF705657890]
+	(No symbol) [0x00007FF7054F4FDA]
+
+
+CoPilot gave instruction for how to update the Chrome Webdriver from version 132 to 135,
+and pasting chrome://settings/help into the address bar caused it to automatically update
+the webdriver.  This still did not clear up the incompatibility error, so I deleted the
+file located at C:\bin\chromedriver.exe and tried again. The webdriver error cleared up, and
+so after entering a location this error popped up instead:
+
+Exception has occurred: NoSuchElementException
+Message: no such element: Unable to locate element: {"method":"css selector","selector":"[id="LocationSearch_input"]"}
+  (Session info: chrome=135.0.7049.42); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#no-such-element-exception
+
+CoPilot revised the get_weather_data function to have an explicit wait:
+
+def get_weather_data(location):
+    options = webdriver.ChromeOptions()
+    options.add_argument("--headless")
+    driver = webdriver.Chrome(options=options)
+
+    try:
+        driver.get("https://weather.com")
+        
+        # Wait for the search bar to be present
+        search_bar = WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.ID, "LocationSearch_input"))
+        )
+        search_bar.send_keys(location)
+        search_bar.send_keys(Keys.RETURN)
+        time.sleep(3)  # Optional: Adjust or remove if unnecessary
+
+        soup = BeautifulSoup(driver.page_source, "html.parser")
+
+        weather_data = {
+            'location': soup.find("h1", class_="CurrentConditions--location--1Ayv3").text if soup.find("h1", class_="CurrentConditions--location--1Ayv3") else "N/A",
+            'temperature': soup.find("span", class_="CurrentConditions--tempValue--3KcTQ").text if soup.find("span", class_="CurrentConditions--tempValue--3KcTQ") else "N/A",
+            'condition': soup.find("div", class_="CurrentConditions--phraseValue--2xXSr").text if soup.find("div", class_="CurrentConditions--phraseValue--2xXSr") else "N/A",
+            'humidity': soup.find("span", class_="CurrentConditions--humidity--AlSGP").text if soup.find("span", class_="CurrentConditions--humidity--AlSGP") else "N/A",
+            'barometer': soup.find("span", class_="CurrentConditions--barometer--3OsYJ").text if soup.find("span", "CurrentConditions--barometer--3OsYJ") else "N/A",
+            'wind': soup.find("span", class_="CurrentConditions--windValue--3KxkN").text if soup.find("span", class_="CurrentConditions--windValue--3KxkN") else "N/A",
+            'precipitation': soup.find("span", class_="CurrentConditions--precipValue--RBVJT").text if soup.find("span", class_="CurrentConditions--precipValue--RBVJT") else "N/A"
+        }
+
+        return weather_data
+
+    finally:
+        driver.quit()
+
+
+To which this error occurred:
+
+Exception has occurred: NameError
+name 'WebDriverWait' is not defined
+  File "C:\Users\USER\Desktop\ThorsHammer\ThorsHammer_v1.01.py", line 84, in get_weather_data
+    search_bar = WebDriverWait(driver, 10).until(
+                 ^^^^^^^^^^^^^
+  File "C:\Users\USER\Desktop\ThorsHammer\ThorsHammer_v1.01.py", line 116, in <module>
+    weather_data = get_weather_data(location)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^
+NameError: name 'WebDriverWait' is not defined
+
+
+CoPilot then said that we need to import WebDriverWait at the top of the script:
+
+
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+
+
+That cleared up the name error, but now that it knows how to wait it timed out:
+
+
+Exception has occurred: TimeoutException
+Message: 
+Stacktrace:
+	GetHandleVerifier [0x00007FF7526F1F55+78133]
+	GetHandleVerifier [0x00007FF7526F1FB0+78224]
+	(No symbol) [0x00007FF7524B91BA]
+	(No symbol) [0x00007FF75250F19D]
+	(No symbol) [0x00007FF75250F44C]
+	(No symbol) [0x00007FF7525623D7]
+	(No symbol) [0x00007FF75253719F]
+	(No symbol) [0x00007FF75255F21F]
+	(No symbol) [0x00007FF752536F33]
+	(No symbol) [0x00007FF752500358]
+	(No symbol) [0x00007FF7525010C3]
+	GetHandleVerifier [0x00007FF7529BBA8D+3001453]
+	GetHandleVerifier [0x00007FF7529B5E72+2977874]
+	GetHandleVerifier [0x00007FF7529D497D+3103581]
+	GetHandleVerifier [0x00007FF75270C7EA+186826]
+	GetHandleVerifier [0x00007FF7527143FF+218591]
+	GetHandleVerifier [0x00007FF7526F9D94+110452]
+	GetHandleVerifier [0x00007FF7526F9F42+110882]
+	GetHandleVerifier [0x00007FF7526E0379+5465]
+	BaseThreadInitThunk [0x00007FF907F77374+20]
+	RtlUserThreadStart [0x00007FF9080BCC91+33]
+  File "C:\Users\USER\Desktop\ThorsHammer\ThorsHammer_v1.01.py", line 86, in get_weather_data
+    EC.presence_of_element_located((By.ID, "LocationSearch_input"))
+
+        )
+
+        search_bar.send_keys(location)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\Desktop\ThorsHammer\ThorsHammer_v1.01.py", line 118, in <module>
+    weather_data = get_weather_data(location)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^
+selenium.common.exceptions.TimeoutException: Message: 
+Stacktrace:
+	GetHandleVerifier [0x00007FF7526F1F55+78133]
+	GetHandleVerifier [0x00007FF7526F1FB0+78224]
+	(No symbol) [0x00007FF7524B91BA]
+	(No symbol) [0x00007FF75250F19D]
+	(No symbol) [0x00007FF75250F44C]
+	(No symbol) [0x00007FF7525623D7]
+	(No symbol) [0x00007FF75253719F]
+	(No symbol) [0x00007FF75255F21F]
+	(No symbol) [0x00007FF752536F33]
+	(No symbol) [0x00007FF752500358]
+	(No symbol) [0x00007FF7525010C3]
+	GetHandleVerifier [0x00007FF7529BBA8D+3001453]
+	GetHandleVerifier [0x00007FF7529B5E72+2977874]
+	GetHandleVerifier [0x00007FF7529D497D+3103581]
+	GetHandleVerifier [0x00007FF75270C7EA+186826]
+	GetHandleVerifier [0x00007FF7527143FF+218591]
+	GetHandleVerifier [0x00007FF7526F9D94+110452]
+	GetHandleVerifier [0x00007FF7526F9F42+110882]
+	GetHandleVerifier [0x00007FF7526E0379+5465]
+	BaseThreadInitThunk [0x00007FF907F77374+20]
+	RtlUserThreadStart [0x00007FF9080BCC91+33]
+
+===

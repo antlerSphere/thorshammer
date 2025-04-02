@@ -1,0 +1,57 @@
+After resolving some of the bugs the script managed to install libraries after warnings,
+a ChromeDriver error occurred over an incompatible version:
+
+Exception has occurred: SessionNotCreatedException
+Message: session not created: This version of ChromeDriver only supports Chrome version 100
+Current browser version is 131.0.6778.265 with binary path C:\Program Files\Google\Chrome\Application\chrome.exe
+
+The chromedriver version (100.0.4896.60) detected in PATH at C:\bin\chromedriver.exe might not be compatible with
+the detected chrome version (131.0.6778.265); currently, chromedriver 131.0.6778.264 is recommended for
+chrome 131.*, so it is advised to delete the driver in PATH and retry
+
+https://g.co/gemini/share/65ed46ef0d4f
+
+Found documentation on Chrome for Testing:
+https://developer.chrome.com/blog/chrome-for-testing/
+
+Chrome for Testing dashboard for downloading Chrome and ChromeDriver for developers looking
+to automate testing:
+
+https://googlechromelabs.github.io/chrome-for-testing/
+
+* Recommended to review this documentation and create an update_chrome() function
+
+https://storage.googleapis.com/chrome-for-testing-public/132.0.6834.83/win64/chromedriver-win64.zip
+was downloaded and chromedriver.exe was pasted into location in the PATH of C:\bin\chromedriver.exe
+after deleting the previous version, retry unsuccessful requiring Chrome version 132
+
+Downloaded Chrome version 132 for win64:
+https://storage.googleapis.com/chrome-for-testing-public/132.0.6834.83/win64/chrome-win64.zip
+
+renamed the current Chrome.exe (C:\Program Files\Google\Chrome\Application) to Chrummy.exe and
+created a shortcut to the Chrome for Testing chrome.exe,
+that has the target of ("C:\Program Files\Google\Chrome\chrome-win64\chrome.exe")
+
+That redirect was unsuccessful, after entering location prompted by python script a new error occurred:
+
+Exception has occurred: NoSuchDriverException
+Message: Unable to obtain driver for chrome; For documentation on this error,
+please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors/driver_location
+ValueError: The browser path is not a valid file: 
+
+The above exception was the direct cause of the following exception:
+
+  File "C:\Users\USER\Desktop\ThorsHammer\ThorsHammer_v1.0.py", line 78, in get_weather_data
+    driver = webdriver.Chrome(options=options)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\Desktop\ThorsHammer\ThorsHammer_v1.0.py", line 111, in <module>
+    weather_data = get_weather_data(location)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^
+selenium.common.exceptions.NoSuchDriverException: Message: Unable to obtain driver for chrome; For documentation on
+this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors/driver_location
+
+The chromedriver version (132.0.6834.83) detected in PATH at C:\bin\chromedriver.exe might not be compatible with
+the detected chrome version (131.0.6778.265); currently, chromedriver 131.0.6778.264 is recommended for
+chrome 131.*, so it is advised to delete the driver in PATH and retry
+
+=====
